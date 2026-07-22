@@ -3,11 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sputnik</title>
+  <title>Sputnik — регистрация</title>
+
+  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,700;14..32,900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,500;14..32,600;14..32,700;14..32,800;14..32,900&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome (иконки) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
   <style>
+    /* ----- СБРОС И БАЗА ----- */
     * {
       margin: 0;
       padding: 0;
@@ -24,130 +31,367 @@
       padding: 1.5rem;
     }
 
-    .sputnik {
+    /* ----- КАРТОЧКА (стиль как у Sputnik) ----- */
+    .sputnik-card {
+      max-width: 520px;
+      width: 100%;
+      background: rgba(18, 40, 30, 0.6);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-radius: 2.8rem;
+      padding: 2.8rem 2.5rem 2.8rem;
+      border: 1px solid rgba(80, 200, 120, 0.12);
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(80, 200, 120, 0.06);
+      transition: all 0.3s ease;
       text-align: center;
-      user-select: none;
     }
 
-    /* основное слово */
-    .sputnik__word {
-      font-size: clamp(4.5rem, 18vw, 12rem);
+    /* ----- ЛОГОТИП / ЗАГОЛОВОК ----- */
+    .sputnik-header {
+      margin-bottom: 2.5rem;
+    }
+
+    .sputnik-header .logo-icon {
+      font-size: 2.8rem;
+      color: #6fcf97;
+      filter: drop-shadow(0 0 18px rgba(60, 210, 130, 0.25));
+      margin-bottom: 0.3rem;
+      display: inline-block;
+    }
+
+    .sputnik-header h1 {
+      font-size: 2.6rem;
       font-weight: 900;
-      letter-spacing: -0.04em;
-      line-height: 1;
-      background: linear-gradient(145deg, #e6f7ed 20%, #6fcf97 60%, #2d8f4e 100%);
+      letter-spacing: -0.03em;
+      background: linear-gradient(145deg, #e6f7ed 20%, #6fcf97 70%, #2d8f4e 100%);
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
-      text-shadow: 0 0 80px rgba(60, 210, 130, 0.15);
-      transition: transform 0.3s ease;
+      line-height: 1.1;
     }
 
-    .sputnik__word:hover {
-      transform: scale(1.02);
-    }
-
-    /* акцентная линия под названием */
-    .sputnik__line {
-      width: 120px;
-      height: 3px;
-      margin: 1.2rem auto 0;
-      background: linear-gradient(90deg, transparent, #6fcf97, transparent);
-      border-radius: 4px;
-      opacity: 0.7;
-    }
-
-    /* дополнительный лёгкий сабтекст — почти незаметный, но добавляет ритм */
-    .sputnik__sub {
-      margin-top: 1.8rem;
+    .sputnik-header .sub {
       font-size: 0.85rem;
       font-weight: 300;
-      letter-spacing: 0.35em;
+      letter-spacing: 0.2em;
       text-transform: uppercase;
-      color: rgba(130, 200, 160, 0.25);
-      transition: color 0.3s ease;
+      color: rgba(130, 200, 160, 0.4);
+      margin-top: 0.3rem;
     }
 
-    .sputnik:hover .sputnik__sub {
-      color: rgba(130, 200, 160, 0.5);
+    /* ----- ФОРМА ----- */
+    .auth-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+      text-align: left;
     }
 
-    /* декоративная точка-спутник (минималистичный акцент) */
-    .sputnik__dot {
-      display: inline-block;
-      width: 10px;
-      height: 10px;
-      background: #6fcf97;
-      border-radius: 50%;
-      margin-right: 6px;
-      box-shadow: 0 0 30px rgba(60, 210, 130, 0.3);
-      animation: pulse-dot 3s ease-in-out infinite;
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
     }
 
-    @keyframes pulse-dot {
-      0%, 100% { opacity: 0.4; transform: scale(0.9); }
-      50% { opacity: 1; transform: scale(1.2); }
+    .form-group label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: rgba(160, 210, 180, 0.6);
+      margin-left: 0.2rem;
     }
 
-    /* небольшая стильная рамка-орбита (чисто декоративно) */
-    .sputnik__orbit {
-      width: 180px;
-      height: 180px;
-      margin: 2.5rem auto 0;
-      border: 1px solid rgba(60, 200, 120, 0.08);
-      border-radius: 50%;
-      position: relative;
+    .form-group .input-wrapper {
+      display: flex;
+      align-items: center;
+      background: rgba(20, 50, 35, 0.5);
+      border-radius: 60px;
+      padding: 0.2rem 0.2rem 0.2rem 1.5rem;
+      border: 1px solid rgba(80, 200, 120, 0.12);
+      transition: border 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .form-group .input-wrapper:focus-within {
+      border-color: #6fcf97;
+      box-shadow: 0 0 0 4px rgba(60, 210, 130, 0.08);
+    }
+
+    .form-group .input-wrapper i {
+      color: #6fcf97;
+      font-size: 1rem;
+      opacity: 0.5;
+      margin-right: 0.8rem;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 0.9rem 1rem 0.9rem 0;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #e2f0e8;
+      font-size: 1rem;
+      font-weight: 500;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .form-group input::placeholder {
+      color: rgba(160, 200, 180, 0.25);
+      font-weight: 400;
+      font-size: 0.95rem;
+    }
+
+    /* Кнопка */
+    .btn-submit {
+      margin-top: 0.5rem;
+      padding: 1rem 2rem;
+      border: none;
+      border-radius: 60px;
+      font-weight: 700;
+      font-size: 1.05rem;
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(145deg, #3db86b, #1e8a4a);
+      color: white;
+      box-shadow: 0 8px 28px rgba(30, 180, 90, 0.25);
+      cursor: pointer;
+      transition: all 0.2s ease;
       display: flex;
       align-items: center;
       justify-content: center;
-      animation: spin-slow 30s linear infinite;
+      gap: 0.7rem;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      width: 100%;
     }
 
-    .sputnik__orbit::after {
-      content: '';
-      position: absolute;
-      top: -6px;
-      left: 50%;
-      width: 12px;
-      height: 12px;
-      background: #6fcf97;
-      border-radius: 50%;
-      transform: translateX(-50%);
-      box-shadow: 0 0 20px rgba(60, 210, 130, 0.25);
-      opacity: 0.5;
+    .btn-submit:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 36px rgba(30, 200, 90, 0.35);
+      background: linear-gradient(145deg, #4dcd7a, #239a52);
     }
 
-    @keyframes spin-slow {
-      to { transform: rotate(360deg); }
+    .btn-submit:active {
+      transform: scale(0.98);
     }
 
-    /* адаптивность для совсем маленьких экранов */
+    .btn-submit i {
+      font-size: 1rem;
+    }
+
+    /* статус / сообщения */
+    .status-message {
+      margin-top: 1.2rem;
+      padding: 0.8rem 1.2rem;
+      border-radius: 40px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      text-align: center;
+      background: rgba(20, 50, 35, 0.3);
+      border: 1px solid rgba(80, 200, 120, 0.06);
+      color: #b5dac8;
+      min-height: 3.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      transition: all 0.2s ease;
+    }
+
+    .status-message.success {
+      color: #8fdeb0;
+      border-color: rgba(60, 210, 130, 0.2);
+      background: rgba(60, 200, 120, 0.06);
+    }
+
+    .status-message.error {
+      color: #f7a9a9;
+      border-color: rgba(240, 120, 120, 0.15);
+      background: rgba(200, 60, 60, 0.06);
+    }
+
+    .status-message i {
+      font-size: 1.1rem;
+    }
+
+    /* подсказка в футере */
+    .auth-hint {
+      margin-top: 1.8rem;
+      font-size: 0.75rem;
+      color: rgba(130, 200, 160, 0.2);
+      letter-spacing: 0.1em;
+      border-top: 1px solid rgba(80, 200, 120, 0.04);
+      padding-top: 1.5rem;
+    }
+
+    .auth-hint i {
+      color: #6fcf97;
+      opacity: 0.3;
+      margin-right: 0.3rem;
+    }
+
+    /* адаптив */
     @media (max-width: 480px) {
-      .sputnik__orbit {
-        width: 130px;
-        height: 130px;
-        margin-top: 1.8rem;
+      .sputnik-card {
+        padding: 2rem 1.5rem;
+        border-radius: 2rem;
       }
-      .sputnik__line {
-        width: 80px;
+      .sputnik-header h1 {
+        font-size: 2.2rem;
       }
-      .sputnik__sub {
-        font-size: 0.7rem;
-        letter-spacing: 0.25em;
+      .form-group .input-wrapper {
+        padding-left: 1.2rem;
       }
     }
   </style>
 </head>
 <body>
-  <div class="sputnik">
-    <!-- только название + минимальные декоративные элементы -->
-    <div class="sputnik__word">
-      <span class="sputnik__dot"></span>Sputnik
+
+  <div class="sputnik-card">
+    <!-- Шапка -->
+    <div class="sputnik-header">
+      <div class="logo-icon"><i class="fas fa-satellite"></i></div>
+      <h1>Sputnik</h1>
+      <div class="sub">зарегистрируйся на орбите</div>
     </div>
-    <div class="sputnik__line"></div>
-    <div class="sputnik__sub">орбитальный минимализм</div>
-    <!-- лёгкая орбита как чистый визуальный ритм -->
-    <div class="sputnik__orbit"></div>
+
+    <!-- Форма регистрации -->
+    <form id="registerForm" class="auth-form">
+      <div class="form-group">
+        <label for="email"><i class="fas fa-envelope" style="margin-right: 6px;"></i> Email</label>
+        <div class="input-wrapper">
+          <i class="fas fa-envelope"></i>
+          <input type="email" id="email" placeholder="ваш@email.com" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="password"><i class="fas fa-lock" style="margin-right: 6px;"></i> Пароль</label>
+        <div class="input-wrapper">
+          <i class="fas fa-lock"></i>
+          <input type="password" id="password" placeholder="минимум 6 символов" required minlength="6">
+        </div>
+      </div>
+
+      <button type="submit" class="btn-submit" id="submitBtn">
+        <i class="fas fa-rocket"></i> Создать аккаунт
+      </button>
+    </form>
+
+    <!-- Блок для сообщений -->
+    <div id="statusMessage" class="status-message">
+      <i class="fas fa-info-circle"></i> готов к запуску
+    </div>
+
+    <div class="auth-hint">
+      <i class="fas fa-shield-halved"></i> Firebase Authentication · защищённое соединение
+    </div>
   </div>
+
+  <!-- ===== Firebase SDK ===== -->
+  <script type="module">
+    // Импортируем необходимые модули Firebase
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+    // --- ТВОЯ КОНФИГУРАЦИЯ (скопирована из задания) ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyBjvB9O3hsn4en7oexjDNr_Ad30LorEJYA",
+      authDomain: "sputnik-e9f74.firebaseapp.com",
+      projectId: "sputnik-e9f74",
+      storageBucket: "sputnik-e9f74.firebasestorage.app",
+      messagingSenderId: "426394306019",
+      appId: "1:426394306019:web:df8ea34fef8be3877f4cd6",
+      measurementId: "G-C20YYXMCQM"
+    };
+
+    // Инициализация Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // --- ЭЛЕМЕНТЫ DOM ---
+    const form = document.getElementById('registerForm');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const statusDiv = document.getElementById('statusMessage');
+    const submitBtn = document.getElementById('submitBtn');
+
+    // --- ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ДЛЯ СТАТУСА ---
+    function setStatus(message, type = 'info') {
+      statusDiv.innerHTML = message;
+      statusDiv.className = 'status-message'; // сброс
+      if (type === 'success') {
+        statusDiv.classList.add('success');
+      } else if (type === 'error') {
+        statusDiv.classList.add('error');
+      }
+    }
+
+    // --- ОБРАБОТКА ФОРМЫ (регистрация) ---
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const email = emailInput.value.trim();
+      const password = passwordInput.value.trim();
+
+      // Простая валидация
+      if (!email || !password) {
+        setStatus('<i class="fas fa-exclamation-triangle"></i> Заполните все поля', 'error');
+        return;
+      }
+
+      if (password.length < 6) {
+        setStatus('<i class="fas fa-exclamation-triangle"></i> Пароль должен быть не менее 6 символов', 'error');
+        return;
+      }
+
+      // Блокируем кнопку на время запроса
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Создаём...';
+      setStatus('<i class="fas fa-spinner fa-pulse"></i> Отправка запроса...', 'info');
+
+      try {
+        // Регистрация через Firebase
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // Успех
+        setStatus(
+          `<i class="fas fa-check-circle"></i> Аккаунт создан! ${user.email ? user.email : ''}`,
+          'success'
+        );
+        form.reset(); // очищаем поля
+      } catch (error) {
+        // Обработка ошибок Firebase
+        let errorMessage = error.message;
+        // Сокращаем/переводим частые ошибки для красоты
+        if (error.code === 'auth/email-already-in-use') {
+          errorMessage = 'Этот email уже зарегистрирован';
+        } else if (error.code === 'auth/invalid-email') {
+          errorMessage = 'Некорректный email';
+        } else if (error.code === 'auth/weak-password') {
+          errorMessage = 'Пароль слишком слабый (минимум 6 символов)';
+        } else if (error.code === 'auth/too-many-requests') {
+          errorMessage = 'Слишком много попыток. Попробуйте позже.';
+        }
+        setStatus(`<i class="fas fa-times-circle"></i> ${errorMessage}`, 'error');
+      } finally {
+        // Разблокируем кнопку
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-rocket"></i> Создать аккаунт';
+      }
+    });
+
+    // Сброс статуса при вводе (чтобы убрать ошибку)
+    emailInput.addEventListener('input', () => {
+      if (statusDiv.classList.contains('error')) {
+        setStatus('<i class="fas fa-info-circle"></i> введите данные', 'info');
+      }
+    });
+    passwordInput.addEventListener('input', () => {
+      if (statusDiv.classList.contains('error')) {
+        setStatus('<i class="fas fa-info-circle"></i> введите данные', 'info');
+      }
+    });
+  </script>
 </body>
 </html>
