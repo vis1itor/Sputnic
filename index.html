@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -308,8 +307,11 @@
       font-weight: 600;
       color: #daf5e4;
       font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
     }
-    .chat-header .partner i { color: #6fcf97; margin-right: 0.4rem; font-size: 0.8rem; }
+    .chat-header .partner i { color: #6fcf97; font-size: 0.8rem; }
     .chat-header .partner .group-badge {
       font-size: 0.6rem;
       background: rgba(255,217,61,0.08);
@@ -323,7 +325,7 @@
       color: rgba(130,200,160,0.15);
     }
 
-    /* ===== КНОПКА + С ВЫПАДАЮЩИМ МЕНЮ ===== */
+    /* ===== КНОПКА + ===== */
     .chat-actions {
       display: flex;
       align-items: center;
@@ -346,7 +348,6 @@
     }
     .btn-plus:hover { background: rgba(60,200,120,0.15); transform: scale(1.05) rotate(90deg); }
 
-    /* ===== ВЫПАДАЮЩЕЕ МЕНЮ СОЗДАНИЯ ===== */
     .create-menu {
       position: absolute;
       top: 2.8rem;
@@ -609,7 +610,6 @@
           <i class="fas fa-user"></i> выберите чат
         </div>
         <div class="chat-actions">
-          <!-- ===== КНОПКА + С ВЫПАДАЮЩИМ МЕНЮ ===== -->
           <button class="btn-plus" id="plusBtn"><i class="fas fa-plus"></i></button>
           <div class="create-menu" id="createMenu">
             <button id="createChatBtn"><i class="fas fa-user-plus" style="color: #6fcf97;"></i> Создать чат</button>
@@ -721,7 +721,9 @@
     authError.textContent = msg;
   }
 
+  // ГЛАВНОЕ: отображение названия группы для всех участников
   function getChatDisplayName(chat) {
+    // Для группы — всегда показываем groupName
     if (chat.type === 'group') {
       return chat.groupName || 'Группа';
     }
@@ -731,6 +733,7 @@
     if (chat.type === 'community') {
       return chat.communityName || 'Сообщество';
     }
+    // Для личных чатов — показываем email собеседника
     const other = chat.participants?.find(p => p !== currentUserEmail);
     return other || 'Неизвестный';
   }
@@ -792,12 +795,16 @@
     const displayName = getChatDisplayName(chat);
     const icon = getChatIcon(chat);
     const memberCount = chat.participants ? chat.participants.length : 0;
-    const groupBadge = chat.type === 'group' ? `<span class="group-badge"><i class="fas fa-users"></i> ${memberCount}</span>` : '';
+    
+    let badgeHtml = '';
+    if (chat.type === 'group') {
+      badgeHtml = `<span class="group-badge"><i class="fas fa-users"></i> ${memberCount}</span>`;
+    }
     
     activePartner.innerHTML = `
       <i class="fas ${icon}"></i> 
       ${displayName} 
-      ${groupBadge}
+      ${badgeHtml}
     `;
   }
 
@@ -833,6 +840,7 @@
           msgDiv.className = `message ${isSent ? 'sent' : 'received'}`;
           
           let senderHtml = '';
+          // В группах показываем отправителя
           if (!isSent && data.sender && activeChatData?.type === 'group') {
             senderHtml = `<span class="msg-sender group-sender">${data.sender}</span>`;
           } else if (!isSent && data.sender) {
@@ -1038,7 +1046,7 @@
       const chatData = {
         participants: allMembers,
         type: 'group',
-        groupName: groupName,
+        groupName: groupName,  // ← Это имя видно всем!
         createdAt: serverTimestamp(),
         lastMessage: null,
         lastMessageTime: null,
@@ -1141,7 +1149,6 @@
   });
 
   // ===== СОБЫТИЯ =====
-  // Настройки
   settingsBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     settingsMenu.classList.toggle('show');
@@ -1161,13 +1168,11 @@
     }
   });
 
-  // ===== КНОПКА + =====
   plusBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     createMenu.classList.toggle('show');
   });
 
-  // Создать чат
   createChatBtn.addEventListener('click', () => {
     const email = prompt('✉️ Введите email собеседника:');
     if (email) {
@@ -1175,22 +1180,18 @@
     }
   });
 
-  // Создать группу
   createGroupBtn.addEventListener('click', () => {
     createGroupChat();
   });
 
-  // Канал (в разработке)
   createChannelBtn.addEventListener('click', () => {
     alert('📢 Каналы — в разработке! Скоро появятся.');
   });
 
-  // Сообщество (в разработке)
   createCommunityBtn.addEventListener('click', () => {
     alert('🌍 Сообщества — в разработке! Скоро появятся.');
   });
 
-  // Отправка сообщения
   sendForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const text = messageInput.value;
