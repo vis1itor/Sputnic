@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Sputnik 💬 Каналы</title>
+  <title>Sputnik 💬</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -132,13 +132,21 @@
     .logo {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.6rem;
       cursor: pointer;
     }
-    .logo i {
-      font-size: 1.8rem;
-      color: #6fcf97;
-      filter: drop-shadow(0 0 20px rgba(60,210,130,0.2));
+    .logo img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid rgba(80,200,120,0.15);
+      box-shadow: 0 0 20px rgba(60,210,130,0.1);
+      transition: 0.3s;
+    }
+    .logo img:hover {
+      transform: scale(1.05);
+      border-color: rgba(80,200,120,0.3);
     }
     .logo span {
       font-size: 1.4rem;
@@ -328,10 +336,6 @@
       border-radius: 20px;
       color: #6fcbff;
       margin-left: 0.3rem;
-    }
-    .chat-header .member-count {
-      font-size: 0.6rem;
-      color: rgba(130,200,160,0.15);
     }
 
     /* ===== КНОПКА + ===== */
@@ -535,7 +539,7 @@
       
       .header-right .user-email { display: none; }
       .logo span { font-size: 1.2rem; }
-      .logo i { font-size: 1.5rem; }
+      .logo img { width: 34px; height: 34px; }
       
       .settings-menu { right: 0.8rem; top: 4rem; }
       .create-menu { right: 0; top: 2.8rem; }
@@ -560,6 +564,7 @@
       .settings-menu button { font-size: 0.75rem; padding: 0.4rem 0.8rem; }
       .create-menu { min-width: 150px; }
       .create-menu button { font-size: 0.75rem; padding: 0.4rem 0.6rem; }
+      .logo img { width: 30px; height: 30px; }
     }
   </style>
 </head>
@@ -583,7 +588,8 @@
   <!-- ===== ШАПКА ===== -->
   <div class="header">
     <div class="logo">
-      <i class="fas fa-satellite"></i>
+      <!-- ===== ВАШЕ ФОТО КАК ЛОГОТИП ===== -->
+      <img src="https://s4.fotokto.ru/photo/full/881/8818257.jpg" alt="Sputnik Logo">
       <span>Sputnik</span>
     </div>
     <div class="header-right">
@@ -756,14 +762,11 @@
     return '';
   }
 
-  // Проверка, может ли пользователь писать в канал
   function canSendMessage(chat) {
     if (!chat) return false;
-    // В каналах писать может только создатель
     if (chat.type === 'channel') {
       return chat.createdBy === currentUserEmail;
     }
-    // В остальных чатах могут все участники
     return chat.participants?.includes(currentUserEmail) || false;
   }
 
@@ -918,7 +921,6 @@
     if (!text.trim()) return;
     if (!currentUserEmail) return;
     
-    // Проверка для каналов
     if (activeChatData?.type === 'channel' && activeChatData.createdBy !== currentUserEmail) {
       alert('🔇 Только создатель канала может отправлять сообщения!');
       return;
@@ -1002,65 +1004,7 @@
     });
   }
 
-  // ===== СОЗДАНИЕ КАНАЛА =====
-  async function createChannel() {
-    if (!currentUserEmail) return;
-
-    const channelName = prompt('📢 Название канала:');
-    if (!channelName) return;
-
-    const membersInput = prompt('👥 Введите email подписчиков (через запятую):\n(вас добавит автоматически)');
-    if (!membersInput) return;
-
-    const memberEmails = membersInput.split(',').map(e => e.trim()).filter(e => e && e.includes('@'));
-    const allMembers = [currentUserEmail, ...memberEmails];
-    
-    try {
-      const invalidEmails = [];
-      for (const email of memberEmails) {
-        const usersQuery = query(collection(db, 'users'), where('email', '==', email));
-        const snapshot = await getDocs(usersQuery);
-        if (snapshot.empty) {
-          invalidEmails.push(email);
-        }
-      }
-
-      if (invalidEmails.length > 0) {
-        alert('❌ Пользователи не найдены: ' + invalidEmails.join(', '));
-        return;
-      }
-
-      const chatData = {
-        participants: allMembers,
-        type: 'channel',
-        channelName: channelName,
-        createdAt: serverTimestamp(),
-        lastMessage: null,
-        lastMessageTime: null,
-        createdBy: currentUserEmail  // Только создатель может писать!
-      };
-      
-      const chatRef = await addDoc(collection(db, 'chats'), chatData);
-      
-      const newChat = { id: chatRef.id, ...chatData };
-      chats.push(newChat);
-      activeChatId = chatRef.id;
-      activeChatData = newChat;
-      updateChatHeader(newChat);
-      updateSendButton(newChat);
-      loadMessages(activeChatId);
-      renderChats();
-      createMenu.classList.remove('show');
-      
-      alert('✅ Канал "' + channelName + '" создан! Подписчиков: ' + allMembers.length + '\n📢 Писать могут только создатели канала!');
-      
-    } catch (e) {
-      console.error('createChannel error:', e);
-      alert('Ошибка создания канала: ' + e.message);
-    }
-  }
-
-  // ===== СОЗДАНИЕ ЛИЧНОГО ЧАТА =====
+  // ===== СОЗДАНИЕ =====
   async function createPrivateChat(partnerEmail) {
     if (!currentUserEmail) return;
     if (partnerEmail === currentUserEmail) {
@@ -1123,7 +1067,6 @@
     }
   }
 
-  // ===== СОЗДАНИЕ ГРУППЫ =====
   async function createGroupChat() {
     if (!currentUserEmail) return;
 
@@ -1178,6 +1121,63 @@
     } catch (e) {
       console.error('createGroupChat error:', e);
       alert('Ошибка создания группы: ' + e.message);
+    }
+  }
+
+  async function createChannel() {
+    if (!currentUserEmail) return;
+
+    const channelName = prompt('📢 Название канала:');
+    if (!channelName) return;
+
+    const membersInput = prompt('👥 Введите email подписчиков (через запятую):\n(вас добавит автоматически)');
+    if (!membersInput) return;
+
+    const memberEmails = membersInput.split(',').map(e => e.trim()).filter(e => e && e.includes('@'));
+    const allMembers = [currentUserEmail, ...memberEmails];
+    
+    try {
+      const invalidEmails = [];
+      for (const email of memberEmails) {
+        const usersQuery = query(collection(db, 'users'), where('email', '==', email));
+        const snapshot = await getDocs(usersQuery);
+        if (snapshot.empty) {
+          invalidEmails.push(email);
+        }
+      }
+
+      if (invalidEmails.length > 0) {
+        alert('❌ Пользователи не найдены: ' + invalidEmails.join(', '));
+        return;
+      }
+
+      const chatData = {
+        participants: allMembers,
+        type: 'channel',
+        channelName: channelName,
+        createdAt: serverTimestamp(),
+        lastMessage: null,
+        lastMessageTime: null,
+        createdBy: currentUserEmail
+      };
+      
+      const chatRef = await addDoc(collection(db, 'chats'), chatData);
+      
+      const newChat = { id: chatRef.id, ...chatData };
+      chats.push(newChat);
+      activeChatId = chatRef.id;
+      activeChatData = newChat;
+      updateChatHeader(newChat);
+      updateSendButton(newChat);
+      loadMessages(activeChatId);
+      renderChats();
+      createMenu.classList.remove('show');
+      
+      alert('✅ Канал "' + channelName + '" создан! Подписчиков: ' + allMembers.length + '\n📢 Писать могут только создатели канала!');
+      
+    } catch (e) {
+      console.error('createChannel error:', e);
+      alert('Ошибка создания канала: ' + e.message);
     }
   }
 
