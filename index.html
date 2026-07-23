@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Sputnik 💬</title>
+  <title>Sputnik 💬 Каналы</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -272,7 +272,7 @@
       color: rgba(130,200,160,0.2);
     }
     .chat-item .chat-badge.group { color: #ffd93d; border-color: rgba(255,217,61,0.1); }
-    .chat-item .chat-badge.channel { color: #6fcbff; border-color: rgba(100,200,255,0.1); }
+    .chat-item .chat-badge.channel { color: #6fcbff; border-color: rgba(100,200,255,0.15); }
     .chat-item .chat-badge.community { color: #ff8a8a; border-color: rgba(255,100,100,0.1); }
     .empty-chats {
       text-align: center;
@@ -310,6 +310,7 @@
       display: flex;
       align-items: center;
       gap: 0.4rem;
+      flex-wrap: wrap;
     }
     .chat-header .partner i { color: #6fcf97; font-size: 0.8rem; }
     .chat-header .partner .group-badge {
@@ -318,6 +319,14 @@
       padding: 0.05rem 0.5rem;
       border-radius: 20px;
       color: #ffd93d;
+      margin-left: 0.3rem;
+    }
+    .chat-header .partner .channel-badge {
+      font-size: 0.6rem;
+      background: rgba(100,200,255,0.08);
+      padding: 0.05rem 0.5rem;
+      border-radius: 20px;
+      color: #6fcbff;
       margin-left: 0.3rem;
     }
     .chat-header .member-count {
@@ -456,6 +465,7 @@
       margin-bottom: 0.1rem;
     }
     .message .msg-sender.group-sender { color: #ffd93d; }
+    .message .msg-sender.channel-sender { color: #6fcbff; }
     .empty-messages {
       text-align: center;
       color: rgba(130,200,160,0.06);
@@ -614,11 +624,8 @@
           <div class="create-menu" id="createMenu">
             <button id="createChatBtn"><i class="fas fa-user-plus" style="color: #6fcf97;"></i> Создать чат</button>
             <button id="createGroupBtn"><i class="fas fa-users" style="color: #ffd93d;"></i> Создать группу</button>
+            <button id="createChannelBtn"><i class="fas fa-bullhorn" style="color: #6fcbff;"></i> Создать канал</button>
             <div class="divider"></div>
-            <button id="createChannelBtn" style="opacity:0.4; cursor:not-allowed;">
-              <i class="fas fa-bullhorn" style="color: #6fcbff;"></i> Канал 
-              <span class="badge-dev">в разработке</span>
-            </button>
             <button id="createCommunityBtn" style="opacity:0.4; cursor:not-allowed;">
               <i class="fas fa-globe" style="color: #ff8a8a;"></i> Сообщество 
               <span class="badge-dev">в разработке</span>
@@ -721,9 +728,7 @@
     authError.textContent = msg;
   }
 
-  // ГЛАВНОЕ: отображение названия группы для всех участников
   function getChatDisplayName(chat) {
-    // Для группы — всегда показываем groupName
     if (chat.type === 'group') {
       return chat.groupName || 'Группа';
     }
@@ -733,7 +738,6 @@
     if (chat.type === 'community') {
       return chat.communityName || 'Сообщество';
     }
-    // Для личных чатов — показываем email собеседника
     const other = chat.participants?.find(p => p !== currentUserEmail);
     return other || 'Неизвестный';
   }
@@ -750,6 +754,17 @@
     if (chat.type === 'channel') return 'channel';
     if (chat.type === 'community') return 'community';
     return '';
+  }
+
+  // Проверка, может ли пользователь писать в канал
+  function canSendMessage(chat) {
+    if (!chat) return false;
+    // В каналах писать может только создатель
+    if (chat.type === 'channel') {
+      return chat.createdBy === currentUserEmail;
+    }
+    // В остальных чатах могут все участники
+    return chat.participants?.includes(currentUserEmail) || false;
   }
 
   function renderChats() {
@@ -784,6 +799,7 @@
           activeChatId = id;
           activeChatData = found;
           updateChatHeader(found);
+          updateSendButton(found);
           loadMessages(id);
           renderChats();
         }
@@ -799,6 +815,8 @@
     let badgeHtml = '';
     if (chat.type === 'group') {
       badgeHtml = `<span class="group-badge"><i class="fas fa-users"></i> ${memberCount}</span>`;
+    } else if (chat.type === 'channel') {
+      badgeHtml = `<span class="channel-badge"><i class="fas fa-bullhorn"></i> ${memberCount}</span>`;
     }
     
     activePartner.innerHTML = `
@@ -806,6 +824,26 @@
       ${displayName} 
       ${badgeHtml}
     `;
+  }
+
+  function updateSendButton(chat) {
+    const canWrite = canSendMessage(chat);
+    const input = document.getElementById('messageInput');
+    const btn = document.getElementById('sendBtn');
+    
+    if (!canWrite && chat?.type === 'channel') {
+      input.placeholder = '🔇 Только создатель канала может писать';
+      input.disabled = true;
+      btn.disabled = true;
+      btn.style.opacity = '0.3';
+      btn.style.cursor = 'not-allowed';
+    } else {
+      input.placeholder = '✍️ сообщение...';
+      input.disabled = false;
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      btn.style.cursor = 'pointer';
+    }
   }
 
   async function loadMessages(chatId) {
@@ -840,11 +878,10 @@
           msgDiv.className = `message ${isSent ? 'sent' : 'received'}`;
           
           let senderHtml = '';
-          // В группах показываем отправителя
-          if (!isSent && data.sender && activeChatData?.type === 'group') {
-            senderHtml = `<span class="msg-sender group-sender">${data.sender}</span>`;
-          } else if (!isSent && data.sender) {
-            senderHtml = `<span class="msg-sender">${data.sender}</span>`;
+          if (!isSent && data.sender) {
+            const senderClass = activeChatData?.type === 'group' ? 'group-sender' : 
+                               activeChatData?.type === 'channel' ? 'channel-sender' : '';
+            senderHtml = `<span class="msg-sender ${senderClass}">${data.sender}</span>`;
           }
           
           msgDiv.innerHTML = `
@@ -858,10 +895,12 @@
         });
 
         if (!hasMessages) {
+          const icon = activeChatData?.type === 'channel' ? 'fa-bullhorn' : 'fa-comment-dots';
+          const text = activeChatData?.type === 'channel' ? 'здесь будут посты канала' : 'начните общение';
           messagesContainer.innerHTML = `
             <div class="empty-messages">
-              <i class="fas fa-comment-dots"></i>
-              <span>начните общение</span>
+              <i class="fas ${icon}"></i>
+              <span>${text}</span>
             </div>
           `;
         }
@@ -878,6 +917,12 @@
     if (!activeChatId) return;
     if (!text.trim()) return;
     if (!currentUserEmail) return;
+    
+    // Проверка для каналов
+    if (activeChatData?.type === 'channel' && activeChatData.createdBy !== currentUserEmail) {
+      alert('🔇 Только создатель канала может отправлять сообщения!');
+      return;
+    }
 
     try {
       sendBtn.disabled = true;
@@ -922,6 +967,7 @@
         activeChatId = chats[0].id;
         activeChatData = chats[0];
         updateChatHeader(chats[0]);
+        updateSendButton(chats[0]);
         loadMessages(activeChatId);
         renderChats();
       }
@@ -949,13 +995,72 @@
         activeChatId = chats[0].id;
         activeChatData = chats[0];
         updateChatHeader(chats[0]);
+        updateSendButton(chats[0]);
         loadMessages(activeChatId);
         renderChats();
       }
     });
   }
 
-  // ===== СОЗДАНИЕ ЧАТОВ =====
+  // ===== СОЗДАНИЕ КАНАЛА =====
+  async function createChannel() {
+    if (!currentUserEmail) return;
+
+    const channelName = prompt('📢 Название канала:');
+    if (!channelName) return;
+
+    const membersInput = prompt('👥 Введите email подписчиков (через запятую):\n(вас добавит автоматически)');
+    if (!membersInput) return;
+
+    const memberEmails = membersInput.split(',').map(e => e.trim()).filter(e => e && e.includes('@'));
+    const allMembers = [currentUserEmail, ...memberEmails];
+    
+    try {
+      const invalidEmails = [];
+      for (const email of memberEmails) {
+        const usersQuery = query(collection(db, 'users'), where('email', '==', email));
+        const snapshot = await getDocs(usersQuery);
+        if (snapshot.empty) {
+          invalidEmails.push(email);
+        }
+      }
+
+      if (invalidEmails.length > 0) {
+        alert('❌ Пользователи не найдены: ' + invalidEmails.join(', '));
+        return;
+      }
+
+      const chatData = {
+        participants: allMembers,
+        type: 'channel',
+        channelName: channelName,
+        createdAt: serverTimestamp(),
+        lastMessage: null,
+        lastMessageTime: null,
+        createdBy: currentUserEmail  // Только создатель может писать!
+      };
+      
+      const chatRef = await addDoc(collection(db, 'chats'), chatData);
+      
+      const newChat = { id: chatRef.id, ...chatData };
+      chats.push(newChat);
+      activeChatId = chatRef.id;
+      activeChatData = newChat;
+      updateChatHeader(newChat);
+      updateSendButton(newChat);
+      loadMessages(activeChatId);
+      renderChats();
+      createMenu.classList.remove('show');
+      
+      alert('✅ Канал "' + channelName + '" создан! Подписчиков: ' + allMembers.length + '\n📢 Писать могут только создатели канала!');
+      
+    } catch (e) {
+      console.error('createChannel error:', e);
+      alert('Ошибка создания канала: ' + e.message);
+    }
+  }
+
+  // ===== СОЗДАНИЕ ЛИЧНОГО ЧАТА =====
   async function createPrivateChat(partnerEmail) {
     if (!currentUserEmail) return;
     if (partnerEmail === currentUserEmail) {
@@ -976,6 +1081,7 @@
       activeChatId = existing.id;
       activeChatData = existing;
       updateChatHeader(existing);
+      updateSendButton(existing);
       loadMessages(activeChatId);
       renderChats();
       createMenu.classList.remove('show');
@@ -1006,6 +1112,7 @@
       activeChatId = chatRef.id;
       activeChatData = newChat;
       updateChatHeader(newChat);
+      updateSendButton(newChat);
       loadMessages(activeChatId);
       renderChats();
       createMenu.classList.remove('show');
@@ -1016,6 +1123,7 @@
     }
   }
 
+  // ===== СОЗДАНИЕ ГРУППЫ =====
   async function createGroupChat() {
     if (!currentUserEmail) return;
 
@@ -1046,7 +1154,7 @@
       const chatData = {
         participants: allMembers,
         type: 'group',
-        groupName: groupName,  // ← Это имя видно всем!
+        groupName: groupName,
         createdAt: serverTimestamp(),
         lastMessage: null,
         lastMessageTime: null,
@@ -1060,6 +1168,7 @@
       activeChatId = chatRef.id;
       activeChatData = newChat;
       updateChatHeader(newChat);
+      updateSendButton(newChat);
       loadMessages(activeChatId);
       renderChats();
       createMenu.classList.remove('show');
@@ -1185,7 +1294,7 @@
   });
 
   createChannelBtn.addEventListener('click', () => {
-    alert('📢 Каналы — в разработке! Скоро появятся.');
+    createChannel();
   });
 
   createCommunityBtn.addEventListener('click', () => {
