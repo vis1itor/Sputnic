@@ -188,38 +188,72 @@
     .messages-container::-webkit-scrollbar { width: 4px; }
     .messages-container::-webkit-scrollbar-thumb { background: rgba(80,200,120,0.1); border-radius: 10px; }
 
-    .message {
+    /* ===== СООБЩЕНИЯ ===== */
+    .message-wrapper {
+      display: flex;
+      flex-direction: column;
       max-width: 75%;
+      animation: messageIn 0.3s ease;
+    }
+    
+    .message-wrapper.sent {
+      align-self: flex-end;
+      align-items: flex-end;
+    }
+    
+    .message-wrapper.received {
+      align-self: flex-start;
+      align-items: flex-start;
+    }
+
+    .message {
       padding: 0.6rem 1.2rem;
       border-radius: 18px;
       font-size: 0.9rem;
       line-height: 1.4;
-      animation: messageIn 0.3s ease;
       word-wrap: break-word;
+      width: 100%;
     }
+    
     @keyframes messageIn {
       0% { opacity: 0; transform: translateY(10px) scale(0.95); }
       100% { opacity: 1; transform: translateY(0) scale(1); }
     }
+    
     .message.sent {
-      align-self: flex-end;
       background: linear-gradient(145deg, #3db86b, #1e8a4a);
       color: white;
       border-bottom-right-radius: 4px;
+      box-shadow: 0 4px 15px rgba(60,210,130,0.15);
     }
+    
     .message.received {
-      align-self: flex-start;
       background: rgba(30,70,50,0.3);
       color: #daf5e4;
       border-bottom-left-radius: 4px;
       border: 1px solid rgba(80,200,120,0.05);
     }
+    
     .message .msg-time {
       font-size: 0.6rem;
       opacity: 0.4;
       margin-left: 0.6rem;
       display: inline-block;
     }
+    
+    .message.sent .msg-time { color: rgba(255,255,255,0.5); }
+    .message.received .msg-time { color: rgba(130,200,160,0.3); }
+
+    .message .msg-sender {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: #6fcf97;
+      display: block;
+      margin-bottom: 0.2rem;
+    }
+    
+    .message.received .msg-sender { color: #8fdeb0; }
+
     .empty-messages {
       text-align: center;
       color: rgba(130,200,160,0.08);
@@ -420,8 +454,7 @@
     updateDoc,
     doc,
     getDoc,
-    setDoc,
-    Timestamp
+    setDoc
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   // ----- КОНФИГ -----
@@ -530,13 +563,28 @@
           const time = data.timestamp?.toDate?.() || new Date();
           const timeStr = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+          // Создаём обёртку для сообщения
+          const wrapper = document.createElement('div');
+          wrapper.className = `message-wrapper ${isSent ? 'sent' : 'received'}`;
+
+          // Создаём само сообщение
           const msgDiv = document.createElement('div');
           msgDiv.className = `message ${isSent ? 'sent' : 'received'}`;
+          
+          // Если сообщение от собеседника — показываем его email
+          let senderHtml = '';
+          if (!isSent && data.senderEmail) {
+            senderHtml = `<span class="msg-sender">${data.senderEmail}</span>`;
+          }
+          
           msgDiv.innerHTML = `
+            ${senderHtml}
             ${data.text}
             <span class="msg-time">${timeStr}</span>
           `;
-          messagesContainer.appendChild(msgDiv);
+          
+          wrapper.appendChild(msgDiv);
+          messagesContainer.appendChild(wrapper);
         });
 
         if (!hasMessages) {
@@ -581,6 +629,7 @@
       await addDoc(collection(db, 'chats', activeChatId, 'messages'), {
         text: text.trim(),
         sender: currentUserEmail,
+        senderEmail: currentUserEmail,
         timestamp: serverTimestamp()
       });
 
@@ -703,7 +752,6 @@
     try {
       console.log('📝 Создаю чат с:', partnerEmail);
       
-      // Проверяем, существует ли пользователь
       const usersQuery = query(collection(db, 'users'), where('email', '==', partnerEmail));
       const userSnapshot = await getDocs(usersQuery);
       
@@ -713,7 +761,6 @@
         return;
       }
       
-      // Создаем чат
       const chatData = {
         participants: [currentUserEmail, partnerEmail],
         createdAt: serverTimestamp(),
@@ -741,7 +788,6 @@
       console.error('❌ ПОЛНАЯ ОШИБКА создания чата:', e);
       console.error('❌ Код ошибки:', e.code);
       console.error('❌ Сообщение:', e.message);
-      console.error('❌ Стек:', e.stack);
       
       let errorMessage = e.message;
       if (e.code === 'permission-denied') {
@@ -767,7 +813,6 @@
       userEmailSpan.textContent = user.email;
       setStatus(`👋 Привет, ${user.email}! 🌟`, 'success');
       
-      // Создаем пользователя в Firestore, если его нет
       try {
         const userRef = doc(db, 'users', user.uid);
         const userDoc = await getDoc(userRef);
