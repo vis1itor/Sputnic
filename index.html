@@ -7,6 +7,7 @@
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <style>
     * {
       margin: 0;
@@ -41,7 +42,6 @@
       position: relative;
     }
 
-    /* жидкий блеск */
     .glass-phone::before {
       content: '';
       position: absolute;
@@ -176,7 +176,7 @@
       width: 100%;
     }
 
-    /* чат-интерфейс (скрыт до входа) */
+    /* чат-интерфейс */
     .chat-container {
       display: none;
       flex-direction: column;
@@ -190,9 +190,16 @@
       justify-content: space-between;
       padding: 6px 4px 12px 4px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      flex-wrap: wrap;
     }
 
-    .chat-header span {
+    .chat-header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .chat-header-left span {
       font-size: 20px;
       font-weight: 300;
       letter-spacing: 1.5px;
@@ -216,6 +223,53 @@
 
     .chat-header button:active {
       background: rgba(255, 70, 70, 0.2);
+    }
+
+    /* меню создания */
+    .menu-overlay {
+      display: none;
+      position: absolute;
+      bottom: 110px;
+      right: 20px;
+      background: rgba(16, 24, 36, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 28px;
+      padding: 16px 0;
+      min-width: 200px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+      z-index: 10;
+    }
+
+    .menu-overlay.active {
+      display: block;
+    }
+
+    .menu-item {
+      padding: 12px 24px;
+      color: #d4e0f0;
+      font-size: 15px;
+      cursor: pointer;
+      transition: 0.1s;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border: none;
+      background: transparent;
+      width: 100%;
+      text-align: left;
+      letter-spacing: 0.3px;
+    }
+
+    .menu-item:active {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .menu-item .badge {
+      font-size: 11px;
+      color: #7a8ea8;
+      margin-left: auto;
     }
 
     .messages {
@@ -265,6 +319,7 @@
       display: flex;
       gap: 10px;
       margin-top: 6px;
+      align-items: center;
     }
 
     .msg-input-area input {
@@ -294,10 +349,22 @@
       cursor: pointer;
       font-size: 20px;
       transition: 0.1s;
+      height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .msg-input-area button:active {
       background: rgba(60, 110, 200, 0.3);
+    }
+
+    .msg-input-area .plus-btn {
+      padding: 0 14px;
+      font-size: 28px;
+      height: 54px;
+      border-radius: 60px;
+      background: rgba(60, 110, 200, 0.08);
     }
 
     .hidden {
@@ -310,12 +377,129 @@
       align-items: center;
       width: 100%;
     }
+
+    /* модалка создания чата */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(6px);
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-box {
+      background: rgba(20, 30, 44, 0.92);
+      backdrop-filter: blur(20px);
+      border-radius: 36px;
+      padding: 28px 24px;
+      max-width: 320px;
+      width: 90%;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8);
+    }
+
+    .modal-box h3 {
+      font-weight: 300;
+      letter-spacing: 1px;
+      margin-bottom: 16px;
+      color: #d0dff5;
+    }
+
+    .modal-box input {
+      width: 100%;
+      background: rgba(10, 16, 26, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 40px;
+      padding: 14px 20px;
+      font-size: 15px;
+      color: #f0f4fc;
+      outline: none;
+      margin-bottom: 14px;
+    }
+
+    .modal-box .btn-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .modal-box .btn-row button {
+      flex: 1;
+      padding: 12px;
+      border-radius: 40px;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      background: rgba(60, 110, 200, 0.12);
+      color: #d3e2ff;
+      cursor: pointer;
+      backdrop-filter: blur(4px);
+      font-size: 15px;
+    }
+
+    .modal-box .btn-row button:active {
+      background: rgba(60, 110, 200, 0.25);
+    }
+
+    .modal-box .btn-row .cancel-btn {
+      background: rgba(255, 255, 255, 0.02);
+      color: #8fa0b8;
+    }
+
+    .chats-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 8px;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
+    .chat-item {
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 30px;
+      cursor: pointer;
+      border: 1px solid rgba(255, 255, 255, 0.02);
+      font-size: 14px;
+      display: flex;
+      justify-content: space-between;
+      transition: 0.1s;
+    }
+
+    .chat-item:active {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .chat-item .delete-btn {
+      background: none;
+      border: none;
+      color: #6a7e96;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 0 4px;
+    }
+
+    .current-chat-label {
+      font-size: 13px;
+      color: #8aa0c0;
+      padding: 4px 0 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+      margin-bottom: 8px;
+    }
   </style>
 </head>
 <body>
 <div class="glass-phone" id="app">
 
-  <!-- Оверлей регистрации / входа (XMID) -->
+  <!-- Оверлей регистрации / входа -->
   <div id="authOverlay" class="overlay">
     <h2>SPUTNIK</h2>
     <div class="xmid-badge">✧ XMID ✧</div>
@@ -328,26 +512,57 @@
     <div id="authStatus" class="status-msg">введите почту и пароль</div>
   </div>
 
-  <!-- Интерфейс чата (появляется после входа) -->
+  <!-- Интерфейс чата -->
   <div id="chatContainer" class="chat-container">
     <div class="chat-header">
-      <span>◈ Sputnik</span>
-      <button id="logoutBtn">выйти</button>
+      <div class="chat-header-left">
+        <span>◈ Sputnik</span>
+      </div>
+      <div>
+        <button id="logoutBtn">выйти</button>
+      </div>
     </div>
+
+    <!-- Список чатов -->
+    <div id="chatsList" class="chats-list"></div>
+    <div id="currentChatLabel" class="current-chat-label">выберите чат</div>
+
     <div id="messagesList" class="messages">
-      <div class="msg-bubble">Добро пожаловать в Sputnik ✦</div>
-      <div class="msg-bubble self">жидкое стекло · тёмная тема</div>
+      <div class="msg-bubble">✦ выберите или создайте чат</div>
     </div>
+
     <div class="msg-input-area">
+      <button class="plus-btn" id="plusBtn">+</button>
       <input type="text" id="msgInput" placeholder="сообщение..." />
       <button id="sendMsgBtn">↗</button>
+    </div>
+
+    <!-- Меню "+" -->
+    <div id="menuOverlay" class="menu-overlay">
+      <button class="menu-item" data-action="createChat">✧ Create Chat</button>
+      <button class="menu-item" data-action="createBulletin">✧ Create Bulletin <span class="badge">under development</span></button>
+      <button class="menu-item" data-action="createChannel">✧ Create Channel <span class="badge">under development</span></button>
+      <button class="menu-item" data-action="createCommunity">✧ Create Community <span class="badge">under development</span></button>
+      <button class="menu-item" data-action="createGroup">✧ Create Group <span class="badge">under development</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка создания чата -->
+<div id="createChatModal" class="modal-overlay">
+  <div class="modal-box">
+    <h3>✧ создать чат</h3>
+    <input type="email" id="chatEmailInput" placeholder="email собеседника" />
+    <div class="btn-row">
+      <button class="cancel-btn" id="modalCancelBtn">отмена</button>
+      <button id="modalCreateBtn">создать</button>
     </div>
   </div>
 </div>
 
 <script>
   (function() {
-    // Инициализация Firebase
+    // Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyC6J2lDt-ia1yQqrMoJ7OF7tQMJ0jNNmRo",
       authDomain: "blackhole-team.firebaseapp.com",
@@ -358,6 +573,7 @@
     };
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
+    const db = firebase.firestore();
 
     // DOM
     const overlay = document.getElementById('authOverlay');
@@ -371,11 +587,21 @@
     const messagesList = document.getElementById('messagesList');
     const msgInput = document.getElementById('msgInput');
     const sendMsgBtn = document.getElementById('sendMsgBtn');
+    const plusBtn = document.getElementById('plusBtn');
+    const menuOverlay = document.getElementById('menuOverlay');
+    const chatsList = document.getElementById('chatsList');
+    const currentChatLabel = document.getElementById('currentChatLabel');
+    const createChatModal = document.getElementById('createChatModal');
+    const chatEmailInput = document.getElementById('chatEmailInput');
+    const modalCreateBtn = document.getElementById('modalCreateBtn');
+    const modalCancelBtn = document.getElementById('modalCancelBtn');
 
-    // Состояние
     let currentUser = null;
+    let currentChatId = null;
+    let currentChatPartner = null;
+    let unsubscribeMessages = null;
 
-    // Вспомогательные функции
+    // Вспомогательные
     function setAuthStatus(text, isError = false) {
       authStatus.textContent = text;
       authStatus.style.color = isError ? '#ff9a8a' : '#92a9c9';
@@ -389,29 +615,178 @@
       messagesList.scrollTop = messagesList.scrollHeight;
     }
 
-    // Переключение UI
+    function clearMessages() {
+      messagesList.innerHTML = '';
+    }
+
     function showChat(user) {
       overlay.style.display = 'none';
       chatContainer.style.display = 'flex';
       currentUser = user;
-      // Очистить сообщения (добавим приветствие)
-      messagesList.innerHTML = '';
-      addMessage(`Привет, ${user.email || 'Sputnik'} ✦`, false);
-      addMessage('жидкое стекло · тёмная тема', true);
+      loadChats();
     }
 
     function showAuth() {
       overlay.style.display = 'flex';
       chatContainer.style.display = 'none';
       currentUser = null;
-      messagesList.innerHTML = '';
+      currentChatId = null;
+      if (unsubscribeMessages) { unsubscribeMessages(); unsubscribeMessages = null; }
+      clearMessages();
+      chatsList.innerHTML = '';
+      currentChatLabel.textContent = 'выберите чат';
+    }
+
+    // Загрузка чатов пользователя
+    function loadChats() {
+      if (!currentUser) return;
+      db.collection('users').doc(currentUser.uid).collection('chats')
+        .orderBy('lastMessageTime', 'desc')
+        .onSnapshot((snapshot) => {
+          chatsList.innerHTML = '';
+          snapshot.forEach((doc) => {
+            const data = doc.data();
+            const chatId = doc.id;
+            const partnerEmail = data.partnerEmail || 'unknown';
+            const div = document.createElement('div');
+            div.className = 'chat-item';
+            div.innerHTML = `
+              <span>${partnerEmail}</span>
+              <button class="delete-btn" data-chatid="${chatId}">✕</button>
+            `;
+            div.addEventListener('click', (e) => {
+              if (e.target.classList.contains('delete-btn')) return;
+              openChat(chatId, partnerEmail);
+            });
+            const deleteBtn = div.querySelector('.delete-btn');
+            deleteBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              deleteChat(chatId);
+            });
+            chatsList.appendChild(div);
+          });
+          if (snapshot.empty && !currentChatId) {
+            currentChatLabel.textContent = 'чатов нет, создайте новый';
+          }
+        });
+    }
+
+    // Открыть чат
+    function openChat(chatId, partnerEmail) {
+      if (unsubscribeMessages) { unsubscribeMessages(); unsubscribeMessages = null; }
+      currentChatId = chatId;
+      currentChatPartner = partnerEmail;
+      currentChatLabel.textContent = `✧ ${partnerEmail}`;
+      clearMessages();
+
+      // Подписка на сообщения
+      unsubscribeMessages = db.collection('chats').doc(chatId).collection('messages')
+        .orderBy('timestamp', 'asc')
+        .onSnapshot((snapshot) => {
+          clearMessages();
+          snapshot.forEach((doc) => {
+            const data = doc.data();
+            const isSelf = data.senderId === currentUser.uid;
+            addMessage(data.text, isSelf);
+          });
+          if (snapshot.empty) {
+            addMessage('✧ начните общение', false);
+          }
+        });
+    }
+
+    // Создать чат
+    function createChatWith(partnerEmail) {
+      if (!currentUser) return;
+      if (partnerEmail === currentUser.email) {
+        alert('нельзя создать чат с самим собой');
+        return;
+      }
+
+      // Проверяем, существует ли пользователь
+      db.collection('users').where('email', '==', partnerEmail).get()
+        .then((snapshot) => {
+          if (snapshot.empty) {
+            alert('пользователь с такой почтой не найден');
+            return;
+          }
+          const partnerUid = snapshot.docs[0].id;
+
+          // Проверяем, нет ли уже чата
+          db.collection('users').doc(currentUser.uid).collection('chats')
+            .where('partnerEmail', '==', partnerEmail).get()
+            .then((existing) => {
+              if (!existing.empty) {
+                alert('чат уже существует');
+                return;
+              }
+
+              // Создаём чат
+              const chatRef = db.collection('chats').doc();
+              const chatId = chatRef.id;
+              const chatData = {
+                participants: [currentUser.uid, partnerUid],
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
+              };
+              chatRef.set(chatData).then(() => {
+                // Добавляем в список чатов обоим
+                const userChat = {
+                  chatId: chatId,
+                  partnerEmail: partnerEmail,
+                  lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                db.collection('users').doc(currentUser.uid).collection('chats').doc(chatId).set(userChat);
+                db.collection('users').doc(partnerUid).collection('chats').doc(chatId).set({
+                  chatId: chatId,
+                  partnerEmail: currentUser.email,
+                  lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                openChat(chatId, partnerEmail);
+              });
+            });
+        })
+        .catch(() => {
+          alert('ошибка при поиске пользователя');
+        });
+    }
+
+    // Удалить чат
+    function deleteChat(chatId) {
+      if (!confirm('удалить чат?')) return;
+      db.collection('users').doc(currentUser.uid).collection('chats').doc(chatId).delete();
+      if (currentChatId === chatId) {
+        currentChatId = null;
+        currentChatPartner = null;
+        if (unsubscribeMessages) { unsubscribeMessages(); unsubscribeMessages = null; }
+        clearMessages();
+        currentChatLabel.textContent = 'чат удалён';
+        addMessage('✦ чат удалён', false);
+      }
+    }
+
+    // Отправить сообщение
+    function sendMessage() {
+      const text = msgInput.value.trim();
+      if (!text || !currentChatId || !currentUser) return;
+      const msgData = {
+        text: text,
+        senderId: currentUser.uid,
+        senderEmail: currentUser.email,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      db.collection('chats').doc(currentChatId).collection('messages').add(msgData);
+      // Обновляем время последнего сообщения
+      db.collection('users').doc(currentUser.uid).collection('chats').doc(currentChatId)
+        .update({ lastMessageTime: firebase.firestore.FieldValue.serverTimestamp() });
+      msgInput.value = '';
     }
 
     // Обработчики аутентификации
     function handleAuthError(error) {
       let msg = error.message || 'Ошибка';
       if (msg.includes('email')) msg = 'неверная почта или пароль';
-      else if (msg.includes('password')) msg = 'пароль должен быть ≥ 6 символов';
+      else if (msg.includes('password')) msg = 'пароль ≥ 6 символов';
       else if (msg.includes('user-not-found')) msg = 'пользователь не найден';
       else if (msg.includes('wrong-password')) msg = 'неверный пароль';
       else if (msg.includes('email-already-in-use')) msg = 'почта уже используется';
@@ -420,6 +795,8 @@
 
     function onAuthStateChanged(user) {
       if (user) {
+        // Сохраняем email пользователя в Firestore для поиска
+        db.collection('users').doc(user.uid).set({ email: user.email }, { merge: true });
         showChat(user);
         setAuthStatus('онлайн', false);
       } else {
@@ -435,75 +812,88 @@
       const email = emailInput.value.trim();
       const pass = passInput.value.trim();
       if (!email || !pass) {
-        setAuthStatus('заполните почту и пароль', true);
+        setAuthStatus('заполните поля', true);
         return;
       }
       setAuthStatus('создание...', false);
       auth.createUserWithEmailAndPassword(email, pass)
-        .then((userCred) => {
-          setAuthStatus('аккаунт создан ✓', false);
-          // авто-вход произойдёт через onAuthStateChanged
-        })
-        .catch((error) => {
-          handleAuthError(error);
-        });
+        .catch((error) => handleAuthError(error));
     });
 
-    // Вход
     signInBtn.addEventListener('click', () => {
       const email = emailInput.value.trim();
       const pass = passInput.value.trim();
       if (!email || !pass) {
-        setAuthStatus('заполните почту и пароль', true);
+        setAuthStatus('заполните поля', true);
         return;
       }
       setAuthStatus('вход...', false);
       auth.signInWithEmailAndPassword(email, pass)
-        .then(() => {
-          setAuthStatus('успешно', false);
-        })
-        .catch((error) => {
-          handleAuthError(error);
-        });
+        .catch((error) => handleAuthError(error));
     });
 
-    // Выход
     logoutBtn.addEventListener('click', () => {
-      auth.signOut().then(() => {
-        showAuth();
-        setAuthStatus('вы вышли', false);
+      if (unsubscribeMessages) { unsubscribeMessages(); unsubscribeMessages = null; }
+      auth.signOut();
+    });
+
+    // Меню "+"
+    plusBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      menuOverlay.classList.toggle('active');
+    });
+
+    document.addEventListener('click', () => {
+      menuOverlay.classList.remove('active');
+    });
+
+    menuOverlay.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+
+    // Обработка пунктов меню
+    document.querySelectorAll('.menu-item').forEach((item) => {
+      item.addEventListener('click', () => {
+        const action = item.dataset.action;
+        menuOverlay.classList.remove('active');
+        if (action === 'createChat') {
+          createChatModal.classList.add('active');
+          chatEmailInput.value = '';
+          chatEmailInput.focus();
+        } else {
+          alert(`${action} (under development)`);
+        }
       });
     });
 
-    // Отправка сообщений (локально)
-    function sendMessage() {
-      const text = msgInput.value.trim();
-      if (!text) return;
-      addMessage(text, true);
-      msgInput.value = '';
-      // Имитация ответа (жидкое стекло)
-      setTimeout(() => {
-        const replies = ['✦ приятно', '♢ liquid glass', '✧ Sputnik', '🌌 тёмная тема', '◈ XMID'];
-        const reply = replies[Math.floor(Math.random() * replies.length)];
-        addMessage(reply, false);
-      }, 400 + Math.random() * 600);
-    }
+    // Модалка создания чата
+    modalCancelBtn.addEventListener('click', () => {
+      createChatModal.classList.remove('active');
+    });
 
+    modalCreateBtn.addEventListener('click', () => {
+      const email = chatEmailInput.value.trim();
+      if (!email) {
+        alert('введите email');
+        return;
+      }
+      createChatModal.classList.remove('active');
+      createChatWith(email);
+    });
+
+    chatEmailInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') modalCreateBtn.click();
+    });
+
+    // Отправка сообщений
     sendMsgBtn.addEventListener('click', sendMessage);
     msgInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') sendMessage();
     });
 
-    // Следим за состоянием авторизации
     auth.onAuthStateChanged(onAuthStateChanged);
 
-    // Небольшая подпись в оверлее для XMID
-    // уже есть .xmid-badge
-
-    // (дополнительно) по клику на оверлей не закрывать
-    // чтобы оверлей всегда был виден до входа
-
-    console.log('Sputnik · XMID · жидкое стекло');
+    console.log('Sputnik · XMID · жидкое стекло · реальные чаты');
   })();
 </script>
 </body>
