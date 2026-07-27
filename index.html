@@ -146,16 +146,38 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            position: relative;
         }
         .chat-item:hover {
             background: #303030;
         }
         .chat-item .name {
             font-weight: 500;
+            flex: 1;
         }
         .chat-item .members {
             font-size: 12px;
             color: #888;
+            margin-right: 8px;
+        }
+        .chat-item .chat-actions {
+            display: flex;
+            gap: 6px;
+        }
+        .chat-item .chat-actions button {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 0 4px;
+            transition: 0.2s;
+        }
+        .chat-item .chat-actions button:hover {
+            color: #fff;
+        }
+        .chat-item .chat-actions .delete-btn:hover {
+            color: #ff6b6b;
         }
         /* Floating + */
         .fab {
@@ -234,6 +256,29 @@
         #chatView .chat-header .title {
             font-weight: 600;
             font-size: 16px;
+            flex: 1;
+        }
+        #chatView .chat-header .chat-actions {
+            display: flex;
+            gap: 8px;
+        }
+        #chatView .chat-header .chat-actions button {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 8px;
+            transition: 0.2s;
+        }
+        #chatView .chat-header .chat-actions button:hover {
+            background: #333;
+            color: #fff;
+        }
+        #chatView .chat-header .chat-actions .delete-btn:hover {
+            background: #441111;
+            color: #ff6b6b;
         }
         #messages {
             flex: 1;
@@ -364,6 +409,66 @@
             background: #7b2ffc;
             color: #fff;
         }
+        /* Edit chat name modal */
+        #editChatModal {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(4px);
+            justify-content: center;
+            align-items: center;
+            z-index: 30;
+        }
+        #editChatModal .modal-box {
+            background: #222;
+            padding: 24px;
+            border-radius: 24px;
+            width: 90%;
+            max-width: 340px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        #editChatModal .modal-box h3 {
+            text-align: center;
+        }
+        #editChatModal .modal-box input {
+            background: #2a2a2a;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+        }
+        #editChatModal .modal-box input:focus {
+            background: #333;
+        }
+        #editChatModal .modal-box .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+        }
+        #editChatModal .modal-box .actions button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        #editChatModal .modal-box .actions .cancel {
+            background: #333;
+            color: #fff;
+        }
+        #editChatModal .modal-box .actions .save {
+            background: #7b2ffc;
+            color: #fff;
+        }
         /* Scroll */
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: #1a1a1a; }
@@ -406,6 +511,10 @@
         <div class="chat-header">
             <button class="back" id="backBtn">←</button>
             <span class="title" id="chatTitle">Чат</span>
+            <div class="chat-actions">
+                <button id="editChatBtn" title="Изменить название">✏️</button>
+                <button id="deleteChatBtn" class="delete-btn" title="Удалить чат">🗑️</button>
+            </div>
         </div>
         <div id="messages"></div>
         <div class="msg-input-area">
@@ -423,6 +532,18 @@
             <div class="actions">
                 <button class="cancel" id="modalCancel">Отмена</button>
                 <button class="create" id="modalCreate">Создать</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- EDIT CHAT MODAL -->
+    <div id="editChatModal">
+        <div class="modal-box">
+            <h3>Изменить название</h3>
+            <input type="text" id="editChatNameInput" placeholder="Новое название" />
+            <div class="actions">
+                <button class="cancel" id="editCancel">Отмена</button>
+                <button class="save" id="editSave">Сохранить</button>
             </div>
         </div>
     </div>
@@ -459,6 +580,12 @@
     const chatMemberInput = document.getElementById('chatMemberInput');
     const modalCancel = document.getElementById('modalCancel');
     const modalCreate = document.getElementById('modalCreate');
+    const editChatModal = document.getElementById('editChatModal');
+    const editChatNameInput = document.getElementById('editChatNameInput');
+    const editCancel = document.getElementById('editCancel');
+    const editSave = document.getElementById('editSave');
+    const editChatBtn = document.getElementById('editChatBtn');
+    const deleteChatBtn = document.getElementById('deleteChatBtn');
     const authBtn = document.getElementById('authBtn');
     const emailInput = document.getElementById('emailInput');
     const passwordInput = document.getElementById('passwordInput');
@@ -469,6 +596,7 @@
     let isLogin = true;
     let currentUser = null;
     let currentChatId = null;
+    let currentChatData = null;
     let unsubscribeMessages = null;
 
     // ========== AUTH ==========
@@ -504,7 +632,6 @@
             mainDiv.style.display = 'flex';
             chatView.style.display = 'none';
             
-            // Сохраняем пользователя в Firestore
             db.collection('users').doc(user.uid).set({
                 email: user.email,
                 uid: user.uid,
@@ -527,14 +654,9 @@
     async function loadChats() {
         if (!currentUser) return;
         try {
-            console.log('Загрузка чатов для пользователя:', currentUser.uid);
-            
-            // Получаем все чаты, где есть текущий пользователь
             const snapshot = await db.collection('chats')
                 .where('members', 'array-contains', currentUser.uid)
                 .get();
-            
-            console.log('Найдено чатов:', snapshot.size);
             
             chatList.innerHTML = '';
             
@@ -543,7 +665,6 @@
                 return;
             }
             
-            // Сортируем вручную по updatedAt
             const chats = [];
             snapshot.forEach(doc => {
                 const data = doc.data();
@@ -562,13 +683,57 @@
                 div.className = 'chat-item';
                 const memberEmails = data.memberEmails || [];
                 const displayName = data.name || memberEmails.filter(e => e !== currentUser.email).join(', ') || 'Чат';
-                div.innerHTML = `<span class="name">${displayName}</span><span class="members">${memberEmails.length} участ.</span>`;
-                div.addEventListener('click', () => openChat(data.id));
+                
+                div.innerHTML = `
+                    <span class="name">${displayName}</span>
+                    <span class="members">${memberEmails.length} участ.</span>
+                    <div class="chat-actions">
+                        <button class="delete-btn" data-chatid="${data.id}" title="Удалить чат">🗑️</button>
+                    </div>
+                `;
+                
+                // Открытие чата по клику на имя
+                div.querySelector('.name').addEventListener('click', () => openChat(data.id));
+                div.querySelector('.members').addEventListener('click', () => openChat(data.id));
+                
+                // Удаление чата
+                div.querySelector('.delete-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteChat(data.id);
+                });
+                
                 chatList.appendChild(div);
             });
         } catch (e) {
             console.error('Ошибка загрузки чатов:', e);
             chatList.innerHTML = '<div style="text-align:center;color:#ff6b6b;padding:40px 0;">Ошибка загрузки чатов</div>';
+        }
+    }
+
+    // ========== DELETE CHAT ==========
+    async function deleteChat(chatId) {
+        if (!confirm('Вы уверены, что хотите удалить этот чат?')) return;
+        
+        try {
+            // Удаляем все сообщения в чате
+            const messagesSnapshot = await db.collection('chats').doc(chatId).collection('messages').get();
+            const batch = db.batch();
+            messagesSnapshot.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+            await batch.commit();
+            
+            // Удаляем сам чат
+            await db.collection('chats').doc(chatId).delete();
+            
+            if (currentChatId === chatId) {
+                backBtn.click();
+            }
+            
+            loadChats();
+        } catch (e) {
+            alert('Ошибка удаления чата: ' + e.message);
+            console.error(e);
         }
     }
 
@@ -612,7 +777,7 @@
             
             const memberUid = usersSnap.docs[0].id;
             
-            // Проверяем, существует ли уже чат между этими пользователями
+            // Проверяем, существует ли уже чат с этим пользователем
             const existingChats = await db.collection('chats')
                 .where('members', 'array-contains', currentUser.uid)
                 .get();
@@ -620,7 +785,7 @@
             let chatExists = false;
             existingChats.forEach(doc => {
                 const data = doc.data();
-                if (data.members && data.members.includes(memberUid) && data.members.length === 2) {
+                if (data.members && data.members.includes(memberUid)) {
                     chatExists = true;
                 }
             });
@@ -666,9 +831,10 @@
         try {
             const doc = await db.collection('chats').doc(chatId).get();
             if (!doc.exists) return;
-            const data = doc.data();
-            const memberEmails = data.memberEmails || [];
-            const displayName = data.name || memberEmails.filter(e => e !== currentUser.email).join(', ') || 'Чат';
+            currentChatData = { id: doc.id, ...doc.data() };
+            
+            const memberEmails = currentChatData.memberEmails || [];
+            const displayName = currentChatData.name || memberEmails.filter(e => e !== currentUser.email).join(', ') || 'Чат';
             chatTitle.textContent = displayName;
 
             // Загружаем сообщения
@@ -699,10 +865,50 @@
         }
     }
 
+    // ========== EDIT CHAT NAME ==========
+    editChatBtn.addEventListener('click', () => {
+        if (!currentChatData) return;
+        editChatNameInput.value = currentChatData.name || '';
+        editChatModal.style.display = 'flex';
+    });
+
+    editCancel.addEventListener('click', () => editChatModal.style.display = 'none');
+    editSave.addEventListener('click', async () => {
+        const newName = editChatNameInput.value.trim();
+        if (!newName) {
+            alert('Введите название чата');
+            return;
+        }
+        
+        try {
+            await db.collection('chats').doc(currentChatId).update({
+                name: newName,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            currentChatData.name = newName;
+            chatTitle.textContent = newName;
+            editChatModal.style.display = 'none';
+            loadChats();
+        } catch (e) {
+            alert('Ошибка обновления названия: ' + e.message);
+            console.error(e);
+        }
+    });
+
+    // ========== DELETE CHAT FROM VIEW ==========
+    deleteChatBtn.addEventListener('click', () => {
+        if (currentChatId) {
+            deleteChat(currentChatId);
+        }
+    });
+
     backBtn.addEventListener('click', () => {
         if (unsubscribeMessages) { unsubscribeMessages(); unsubscribeMessages = null; }
         chatView.style.display = 'none';
         mainDiv.style.display = 'flex';
+        currentChatId = null;
+        currentChatData = null;
         loadChats();
     });
 
