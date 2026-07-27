@@ -418,7 +418,7 @@
     <div id="createChatModal">
         <div class="modal-box">
             <h3>Создать чат</h3>
-            <input type="text" id="chatNameInput" placeholder="Название чата" />
+            <input type="text" id="chatNameInput" placeholder="Название чата (необязательно)" />
             <input type="email" id="chatMemberInput" placeholder="Email участника" />
             <div class="actions">
                 <button class="cancel" id="modalCancel">Отмена</button>
@@ -503,9 +503,15 @@
             authDiv.style.display = 'none';
             mainDiv.style.display = 'flex';
             chatView.style.display = 'none';
-            loadChats();
-            // set user presence
-            db.collection('users').doc(user.uid).set({ email: user.email, uid: user.uid }, { merge: true });
+            
+            // Сохраняем пользователя в Firestore
+            db.collection('users').doc(user.uid).set({
+                email: user.email,
+                uid: user.uid,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true }).then(() => {
+                loadChats();
+            });
         } else {
             currentUser = null;
             authDiv.style.display = 'flex';
@@ -520,23 +526,49 @@
     // ========== CHATS ==========
     async function loadChats() {
         if (!currentUser) return;
-        const snapshot = await db.collection('chats')
-            .where('members', 'array-contains', currentUser.uid)
-            .orderBy('updatedAt', 'desc')
-            .get();
-        chatList.innerHTML = '';
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            const div = document.createElement('div');
-            div.className = 'chat-item';
-            const memberEmails = data.memberEmails || [];
-            const displayName = data.name || memberEmails.filter(e => e !== currentUser.email).join(', ') || 'Чат';
-            div.innerHTML = `<span class="name">${displayName}</span><span class="members">${memberEmails.length} участ.</span>`;
-            div.addEventListener('click', () => openChat(doc.id));
-            chatList.appendChild(div);
-        });
-        if (snapshot.empty) {
-            chatList.innerHTML = '<div style="text-align:center;color:#666;padding:40px 0;">Нет чатов. Нажмите + чтобы создать</div>';
+        try {
+            console.log('Загрузка чатов для пользователя:', currentUser.uid);
+            
+            // Получаем все чаты, где есть текущий пользователь
+            const snapshot = await db.collection('chats')
+                .where('members', 'array-contains', currentUser.uid)
+                .get();
+            
+            console.log('Найдено чатов:', snapshot.size);
+            
+            chatList.innerHTML = '';
+            
+            if (snapshot.empty) {
+                chatList.innerHTML = '<div style="text-align:center;color:#666;padding:40px 0;">Нет чатов. Нажмите + чтобы создать</div>';
+                return;
+            }
+            
+            // Сортируем вручную по updatedAt
+            const chats = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                chats.push({ id: doc.id, ...data });
+            });
+            
+            chats.sort((a, b) => {
+                if (a.updatedAt && b.updatedAt) {
+                    return b.updatedAt.toDate() - a.updatedAt.toDate();
+                }
+                return 0;
+            });
+            
+            chats.forEach(data => {
+                const div = document.createElement('div');
+                div.className = 'chat-item';
+                const memberEmails = data.memberEmails || [];
+                const displayName = data.name || memberEmails.filter(e => e !== currentUser.email).join(', ') || 'Чат';
+                div.innerHTML = `<span class="name">${displayName}</span><span class="members">${memberEmails.length} участ.</span>`;
+                div.addEventListener('click', () => openChat(data.id));
+                chatList.appendChild(div);
+            });
+        } catch (e) {
+            console.error('Ошибка загрузки чатов:', e);
+            chatList.innerHTML = '<div style="text-align:center;color:#ff6b6b;padding:40px 0;">Ошибка загрузки чатов</div>';
         }
     }
 
@@ -558,28 +590,71 @@
 
     modalCancel.addEventListener('click', () => createChatModal.style.display = 'none');
     modalCreate.addEventListener('click', async () => {
-        const name = chatNameInput.value.trim() || 'Новый чат';
+        const name = chatNameInput.value.trim() || null;
         const memberEmail = chatMemberInput.value.trim();
-        if (!memberEmail) { alert('Введите email участника'); return; }
-        if (memberEmail === currentUser.email) { alert('Нельзя добавить себя'); return; }
+        
+        if (!memberEmail) { 
+            alert('Введите email участника'); 
+            return; 
+        }
+        if (memberEmail === currentUser.email) { 
+            alert('Нельзя добавить себя'); 
+            return; 
+        }
+        
         try {
-            // find user by email
+            // Ищем пользователя по email
             const usersSnap = await db.collection('users').where('email', '==', memberEmail).get();
-            if (usersSnap.empty) { alert('Пользователь с таким email не найден'); return; }
+            if (usersSnap.empty) { 
+                alert('Пользователь с таким email не найден. Убедитесь, что он зарегистрирован.'); 
+                return; 
+            }
+            
             const memberUid = usersSnap.docs[0].id;
+            
+            // Проверяем, существует ли уже чат между этими пользователями
+            const existingChats = await db.collection('chats')
+                .where('members', 'array-contains', currentUser.uid)
+                .get();
+            
+            let chatExists = false;
+            existingChats.forEach(doc => {
+                const data = doc.data();
+                if (data.members && data.members.includes(memberUid) && data.members.length === 2) {
+                    chatExists = true;
+                }
+            });
+            
+            if (chatExists) {
+                alert('Чат с этим пользователем уже существует');
+                createChatModal.style.display = 'none';
+                return;
+            }
+            
+            // Создаем новый чат
             const members = [currentUser.uid, memberUid];
             const memberEmails = [currentUser.email, memberEmail];
-            await db.collection('chats').add({
-                name: name,
+            const chatData = {
                 members: members,
                 memberEmails: memberEmails,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
                 createdBy: currentUser.uid
-            });
+            };
+            
+            if (name) {
+                chatData.name = name;
+            }
+            
+            await db.collection('chats').add(chatData);
+            
             createChatModal.style.display = 'none';
             loadChats();
-        } catch (e) { alert('Ошибка: ' + e.message); }
+            
+        } catch (e) { 
+            alert('Ошибка: ' + e.message);
+            console.error(e);
+        }
     });
 
     // ========== OPEN CHAT ==========
@@ -587,35 +662,41 @@
         currentChatId = chatId;
         mainDiv.style.display = 'none';
         chatView.style.display = 'flex';
-        const doc = await db.collection('chats').doc(chatId).get();
-        if (!doc.exists) return;
-        const data = doc.data();
-        const memberEmails = data.memberEmails || [];
-        const displayName = data.name || memberEmails.filter(e => e !== currentUser.email).join(', ') || 'Чат';
-        chatTitle.textContent = displayName;
+        
+        try {
+            const doc = await db.collection('chats').doc(chatId).get();
+            if (!doc.exists) return;
+            const data = doc.data();
+            const memberEmails = data.memberEmails || [];
+            const displayName = data.name || memberEmails.filter(e => e !== currentUser.email).join(', ') || 'Чат';
+            chatTitle.textContent = displayName;
 
-        // load messages
-        if (unsubscribeMessages) unsubscribeMessages();
-        messagesDiv.innerHTML = '';
-        unsubscribeMessages = db.collection('chats').doc(chatId).collection('messages')
-            .orderBy('createdAt', 'asc')
-            .onSnapshot(snapshot => {
-                messagesDiv.innerHTML = '';
-                snapshot.forEach(doc => {
-                    const msg = doc.data();
-                    const div = document.createElement('div');
-                    div.className = 'message' + (msg.senderId === currentUser.uid ? ' own' : '');
-                    const senderEmail = msg.senderEmail || 'unknown';
-                    const time = msg.createdAt ? msg.createdAt.toDate().toLocaleTimeString() : '';
-                    div.innerHTML = `
-                        <div class="sender">${senderEmail}</div>
-                        ${msg.text}
-                        <div class="time">${time}</div>
-                    `;
-                    messagesDiv.appendChild(div);
+            // Загружаем сообщения
+            if (unsubscribeMessages) unsubscribeMessages();
+            messagesDiv.innerHTML = '';
+            
+            unsubscribeMessages = db.collection('chats').doc(chatId).collection('messages')
+                .orderBy('createdAt', 'asc')
+                .onSnapshot(snapshot => {
+                    messagesDiv.innerHTML = '';
+                    snapshot.forEach(doc => {
+                        const msg = doc.data();
+                        const div = document.createElement('div');
+                        div.className = 'message' + (msg.senderId === currentUser.uid ? ' own' : '');
+                        const senderEmail = msg.senderEmail || 'unknown';
+                        const time = msg.createdAt ? msg.createdAt.toDate().toLocaleTimeString() : '';
+                        div.innerHTML = `
+                            <div class="sender">${senderEmail}</div>
+                            ${msg.text}
+                            <div class="time">${time}</div>
+                        `;
+                        messagesDiv.appendChild(div);
+                    });
+                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
                 });
-                messagesDiv.scrollTop = messagesDiv.scrollHeight;
-            });
+        } catch (e) {
+            console.error('Ошибка открытия чата:', e);
+        }
     }
 
     backBtn.addEventListener('click', () => {
@@ -643,7 +724,10 @@
             await db.collection('chats').doc(currentChatId).update({
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
-        } catch (e) { alert('Ошибка отправки: ' + e.message); }
+        } catch (e) { 
+            alert('Ошибка отправки: ' + e.message);
+            console.error(e);
+        }
     }
 
     // ========== INIT ==========
